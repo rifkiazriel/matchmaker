@@ -219,13 +219,30 @@
     }
 
     function buildQueues() {
+        queueXD = []; // Reset antrean
+        queuePA = [];
+
         let all = Object.values(players);
-        let f = all.filter(p => p.gender === 'Wanita');
+        let f = all.filter(p => p.gender === 'Wanita').sort(() => Math.random() - 0.5);
         let m = all.filter(p => p.gender === 'Pria').sort(() => Math.random() - 0.5);
         
+        // --- LOGIKA MIX DOUBLE (XD) ---
+        // Mengambil pria sebanyak jumlah wanita yang ada untuk dipasangkan
         let mForXD = m.splice(0, f.length);
-        f.forEach((c, i) => queueXD.push([c.name, mForXD[i].name]));
-        for(let i=0; i<m.length; i+=2) { if(m[i+1]) queuePA.push([m[i].name, m[i+1].name]); }
+        f.forEach((wanita, i) => {
+            if (mForXD[i]) {
+                // Memasukkan pasangan [Wanita, Pria] ke antrean XD
+                queueXD.push([wanita.name, mForXD[i].name]);
+            }
+        });
+
+        // --- LOGIKA MEN DOUBLE (PA) ---
+        // Sisa pria yang tidak masuk Mix Double dimasukkan ke Ganda Putra
+        for(let i = 0; i < m.length; i += 2) { 
+            if(m[i+1]) {
+                queuePA.push([m[i].name, m[i+1].name]); 
+            } 
+        }
     }
 
     function displayMatch(c) {
@@ -305,8 +322,14 @@ function toggleEdit(c) {
     }
 
     function applyEdit(c) {
-        const sel = Array.from(document.querySelectorAll(`#grid-${c} .selected`)).map(e => e.innerText);
+        // Kita hanya mengambil text content dari node pertama (Nama), 
+        // bukan seluruh innerText yang berisi tag <small>
+        const sel = Array.from(document.querySelectorAll(`#grid-${c} .selected`)).map(e => {
+            return e.childNodes[0].textContent.trim();
+        });
+
         if(sel.length !== 4) return alert("Pilih 4 orang");
+        
         currentMatch[c] = [[sel[0], sel[1]], [sel[2], sel[3]]];
         document.getElementById(`edit-${c}`).style.display = 'none';
         saveToFirebase();
