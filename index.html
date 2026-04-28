@@ -286,14 +286,21 @@
         saveToFirebase();
     }
 
-    function toggleEdit(c) {
+function toggleEdit(c) {
         const p = document.getElementById(`edit-${c}`);
         p.style.display = p.style.display === 'block' ? 'none' : 'block';
         if(p.style.display === 'block') {
             const grid = document.getElementById(`grid-${c}`);
-            grid.innerHTML = Object.keys(players).sort().map(n => 
-                `<div class="p-opt ${currentMatch[c].flat().includes(n)?'selected':''}" onclick="this.classList.toggle('selected')">${n}</div>`
-            ).join('');
+            // BAGIAN YANG DIUBAH: Menambahkan class warna berdasarkan gender
+            grid.innerHTML = Object.keys(players).sort().map(n => {
+                const pData = players[n];
+                const genderClass = pData.gender === 'Wanita' ? 'bg-wanita' : 'bg-pria';
+                const isSelected = currentMatch[c].flat().includes(n) ? 'selected' : '';
+                
+                return `<div class="p-opt ${isSelected} ${genderClass}" onclick="this.classList.toggle('selected')">
+                            ${n} <br><small>(${pData.gender})</small>
+                        </div>`;
+            }).join('');
         }
     }
 
