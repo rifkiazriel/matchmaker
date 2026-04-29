@@ -361,67 +361,60 @@
  }
 
  function startApp() {
- console.log("Memulai inisialisasi...");
+    console.log("Memulai inisialisasi...");
+    const raw = document.getElementById('rawNames').value;
+    
+    if(raw.trim()) {
+        // PERBAIKAN: Membagi berdasarkan baris baru ATAU koma
+        const entries = raw.split(/[\n,]/);
+        
+        entries.forEach(entry => {
+            let nameInput = entry.trim(); 
+            if(!nameInput) return;
+            
+            // Deteksi gender (mencari kata 'cewe' sebagai kata terpisah)
+            let isF = /\bcewe\b/i.test(nameInput);
+            
+            // PERBAIKAN REGEX: Menghapus kata 'cewe' dengan batasan kata (\b) 
+            // agar nama seperti "Alice" tidak rusak menjadi "Ali"
+            let cleanName = nameInput.replace(/\bcewe\b/gi, '').trim();
+            
+            if(cleanName && !players[cleanName]) {
+                players[cleanName] = { 
+                    name: cleanName, 
+                    gender: isF ? 'Wanita' : 'Pria', 
+                    played: 0, wins: 0, losses: 0, points: 0 
+                };
+            }
+        });
+    }
 
- // Ambil data dari textarea (Paste Nama)
- const raw = document.getElementById('rawNames').value;
+    const totalPemain = Object.keys(players).length;
+    if(totalPemain < 4) {
+        return alert("Pemain terdeteksi: " + totalPemain + "\nButuh minimal 4 pemain.");
+    }
+    
+    queueXD = [];
+    queuePA = [];
+    
+    buildQueues();
+    refreshMatch('xd');
+    refreshMatch('pa');
 
- if(raw.trim()) {
- // PERBAIKAN: Membagi berdasarkan baris (mendukung format Windows/Unix)
- const lines = raw.split(/\r?\n/);
+    db.set({ 
+        players, 
+        queueXD, 
+        queuePA, 
+        currentMatch, 
+        matchHistory: [] 
+    }).then(() => {
+        document.getElementById('setupSection').classList.add('hidden');
+        document.getElementById('mainGame').classList.remove('hidden');
+    }).catch(err => {
+        alert("Gagal koneksi Firebase: " + err.message);
+    });
+}
 
- lines.forEach(line => {
- // PERBAIKAN: .trim() menghapus spasi liar di depan/belakang nama
- let nameInput = line.trim(); 
- if(!nameInput) return;
-
- // Deteksi gender: mencari kata 'cewe' (tidak peduli huruf besar/kecil)
- let isF = nameInput.toLowerCase().includes('cewe');
-
- // Hapus kata 'cewe' agar nama di leaderboard bersih
- let cleanName = nameInput.replace(/cewe/gi, '').trim();
-
- // Masukkan ke objek players jika belum ada
- if(cleanName && !players[cleanName]) {
- players[cleanName] = { 
- name: cleanName, 
- gender: isF ? 'Wanita' : 'Pria', 
- played: 0, wins: 0, losses: 0, points: 0 
- };
- }
- });
- }
-
- // Validasi jumlah pemain
- const totalPemain = Object.keys(players).length;
- if(totalPemain < 4) {
- return alert("Pemain terdeteksi: " + totalPemain + "\nButuh minimal 4 pemain. Pastikan setiap nama di baris baru.");
- }
-
- // Reset Antrean agar tidak duplikat saat restart
- queueXD = [];
- queuePA = [];
-
- buildQueues();
- refreshMatch('xd');
- refreshMatch('pa');
-
- // Kirim ke Firebase
- db.set({ 
- players, 
- queueXD, 
- queuePA, 
- currentMatch, 
- matchHistory: [] 
- }).then(() => {
- console.log("Sesi Berhasil Diaktifkan!");
- // Pastikan tampilan pindah
- document.getElementById('setupSection').classList.add('hidden');
- document.getElementById('mainGame').classList.remove('hidden');
- }).catch(err => {
- alert("Gagal koneksi Firebase: " + err.message);
- });
- }
 
  function buildQueues() {
  // Reset antrean
