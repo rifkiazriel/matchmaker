@@ -194,42 +194,67 @@
         c.innerHTML = Object.keys(players).map(k => `<div>${k} (${players[k].gender})</div>`).join('');
     }
 
-    function startApp() {
+        function startApp() {
+        // 1. Ambil data dari textarea (Paste Nama)
         const raw = document.getElementById('rawNames').value;
         if(raw.trim()) {
             raw.split(/[,\n]/).forEach(n => {
                 let name = n.trim(); if(!name) return;
                 let isF = name.toLowerCase().includes('cewe');
                 let clean = name.replace(/cewe/i, '').trim();
-                if(!players[clean]) players[clean] = { name: clean, gender: isF?'Wanita':'Pria', played:0, wins:0, losses:0, points:0 };
+                // Pastikan pemain belum ada sebelum ditambah
+                if(!players[clean]) {
+                    players[clean] = { name: clean, gender: isF?'Wanita':'Pria', played:0, wins:0, losses:0, points:0 };
+                }
             });
         }
-        if(Object.keys(players).length < 4) return alert("Min 4 pemain");
+
+        // 2. Validasi jumlah minimal pemain
+        const totalPemain = Object.keys(players).length;
+        if(totalPemain < 4) {
+            return alert("Minimal harus ada 4 pemain untuk memulai sesi!");
+        }
+        
+        // 3. Inisialisasi Antrean (PENTING: Reset antrean agar tidak double)
+        queueXD = []; 
+        queuePA = [];
         buildQueues();
+
+        // 4. Set pertandingan pertama untuk kedua court
         refreshMatch('xd');
         refreshMatch('pa');
+
+        // 5. Simpan ke Firebase (Ini yang memicu layar pindah dari Setup ke Game)
         saveToFirebase();
     }
 
     function buildQueues() {
-        queueXD = []; queuePA = [];
+        // Pastikan kita bekerja dengan array baru agar tidak merusak data asli
         let all = Object.values(players).sort(() => Math.random() - 0.5);
         let f = all.filter(p => p.gender === 'Wanita');
         let m = all.filter(p => p.gender === 'Pria');
         
-        // Logika: Jika cewe < 2, semua masuk queuePA (Open Double)
+        // LOGIKA: Jika wanita kurang dari 2, anggap semua "Open Double"
         if (f.length < 2) {
             let combined = [...f, ...m].sort(() => Math.random() - 0.5);
-            for(let i=0; i<combined.length; i+=2) { 
-                if(combined[i+1]) queuePA.push([combined[i].name, combined[i+1].name]); 
+            for(let i = 0; i < combined.length; i += 2) { 
+                if(combined[i+1]) {
+                    queuePA.push([combined[i].name, combined[i+1].name]); 
+                }
             }
         } else {
-            // Normal Mix Double
+            // Normal: Pasangkan Wanita dengan Pria secara acak
             let mForXD = m.splice(0, f.length);
-            f.forEach((c, i) => { if(mForXD[i]) queueXD.push([c.name, mForXD[i].name]); });
-            for(let i=0; i<m.length; i+=2) { if(m[i+1]) queuePA.push([m[i].name, m[i+1].name]); }
+            f.forEach((c, i) => { 
+                if(mForXD[i]) queueXD.push([c.name, mForXD[i].name]); 
+            });
+            // Sisa pria masuk ke Ganda Putra
+            for(let i = 0; i < m.length; i += 2) { 
+                if(m[i+1]) queuePA.push([m[i].name, m[i+1].name]); 
+            }
         }
     }
+
 
     function refreshMatch(c) {
         const totalFemales = Object.values(players).filter(p => p.gender === 'Wanita').length;
