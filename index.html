@@ -362,24 +362,26 @@
 
  function startApp() {
     console.log("Memulai inisialisasi...");
+    
+    // 1. Ambil data dari textarea
     const raw = document.getElementById('rawNames').value;
     
-    if(raw.trim()) {
-        // PERBAIKAN: Membagi berdasarkan baris baru ATAU koma
-        const entries = raw.split(/[\n,]/);
+    // 2. Proses data hanya jika textarea tidak kosong
+    if (raw.trim()) {
+        // Membagi berdasarkan koma, baris baru, atau titik koma
+        const entries = raw.split(/[\n,;]/);
         
         entries.forEach(entry => {
             let nameInput = entry.trim(); 
-            if(!nameInput) return;
+            if (!nameInput) return;
             
-            // Deteksi gender (mencari kata 'cewe' sebagai kata terpisah)
+            // Cek gender: apakah ada kata 'cewe' di dalamnya?
             let isF = /\bcewe\b/i.test(nameInput);
             
-            // PERBAIKAN REGEX: Menghapus kata 'cewe' dengan batasan kata (\b) 
-            // agar nama seperti "Alice" tidak rusak menjadi "Ali"
+            // Bersihkan nama dari kata 'cewe' dan karakter aneh
             let cleanName = nameInput.replace(/\bcewe\b/gi, '').trim();
             
-            if(cleanName && !players[cleanName]) {
+            if (cleanName && !players[cleanName]) {
                 players[cleanName] = { 
                     name: cleanName, 
                     gender: isF ? 'Wanita' : 'Pria', 
@@ -389,11 +391,13 @@
         });
     }
 
+    // 3. Validasi jumlah pemain (harus dari input manual + paste)
     const totalPemain = Object.keys(players).length;
-    if(totalPemain < 4) {
-        return alert("Pemain terdeteksi: " + totalPemain + "\nButuh minimal 4 pemain.");
+    if (totalPemain < 4) {
+        return alert("Gagal Memulai!\nTotal pemain baru terdeteksi: " + totalPemain + "\nButuh minimal 4 pemain (Pria/Wanita bebas).");
     }
     
+    // 4. Inisialisasi antrean
     queueXD = [];
     queuePA = [];
     
@@ -401,19 +405,25 @@
     refreshMatch('xd');
     refreshMatch('pa');
 
+    // 5. Simpan ke Firebase dengan proteksi Error
+    console.log("Menyimpan data ke Firebase...");
     db.set({ 
         players, 
         queueXD, 
         queuePA, 
         currentMatch, 
-        matchHistory: [] 
+        matchHistory: matchHistory || [] 
     }).then(() => {
+        console.log("Berhasil!");
+        // Paksa pindah tampilan
         document.getElementById('setupSection').classList.add('hidden');
         document.getElementById('mainGame').classList.remove('hidden');
     }).catch(err => {
-        alert("Gagal koneksi Firebase: " + err.message);
+        console.error(err);
+        alert("Firebase Error: Pastikan Realtime Database 'Read/Write' sudah diset ke 'true'.\n\nDetail: " + err.message);
     });
 }
+
 
 
  function buildQueues() {
