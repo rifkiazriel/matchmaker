@@ -218,7 +218,7 @@
         saveToFirebase();
     }
 
-    function buildQueues() {
+        function buildQueues() {
         queueXD = []; // Reset antrean
         queuePA = [];
 
@@ -226,24 +226,36 @@
         let f = all.filter(p => p.gender === 'Wanita').sort(() => Math.random() - 0.5);
         let m = all.filter(p => p.gender === 'Pria').sort(() => Math.random() - 0.5);
         
-        // --- LOGIKA MIX DOUBLE (XD) ---
-        // Mengambil pria sebanyak jumlah wanita yang ada untuk dipasangkan
-        let mForXD = m.splice(0, f.length);
-        f.forEach((wanita, i) => {
-            if (mForXD[i]) {
-                // Memasukkan pasangan [Wanita, Pria] ke antrean XD
-                queueXD.push([wanita.name, mForXD[i].name]);
+        // JIKA WANITA KURANG DARI 2: 
+        // Semua pemain dicampur jadi satu antrean random (Court 1 & 2 jadi General Double)
+        if (f.length < 2) {
+            let combined = [...f, ...m].sort(() => Math.random() - 0.5);
+            for(let i = 0; i < combined.length; i += 2) {
+                if(combined[i+1]) {
+                    // Masukkan ke queuePA saja sebagai antrean umum
+                    queuePA.push([combined[i].name, combined[i+1].name]);
+                }
             }
-        });
+            // Kosongkan queueXD agar sistem mengambil dari queuePA untuk kedua court jika diperlukan
+            // Atau Anda bisa mengarahkan refreshMatch untuk mengambil dari PA
+        } else {
+            // LOGIKA NORMAL (Mix Double tetap ada)
+            let mForXD = m.splice(0, f.length);
+            f.forEach((wanita, i) => {
+                if (mForXD[i]) {
+                    queueXD.push([wanita.name, mForXD[i].name]);
+                }
+            });
 
-        // --- LOGIKA MEN DOUBLE (PA) ---
-        // Sisa pria yang tidak masuk Mix Double dimasukkan ke Ganda Putra
-        for(let i = 0; i < m.length; i += 2) { 
-            if(m[i+1]) {
-                queuePA.push([m[i].name, m[i+1].name]); 
-            } 
+            // Sisa pria masuk ke ganda putra
+            for(let i = 0; i < m.length; i += 2) { 
+                if(m[i+1]) {
+                    queuePA.push([m[i].name, m[i+1].name]); 
+                } 
+            }
         }
     }
+
 
     function displayMatch(c) {
         const m = currentMatch[c];
@@ -280,10 +292,19 @@
         saveToFirebase();
     }
 
-    function refreshMatch(c) {
+        function refreshMatch(c) {
         let q = c === 'xd' ? queueXD : queuePA;
-        if(q.length >= 2) { currentMatch[c] = [q.shift(), q.shift()]; }
+        
+        // Jika antrean spesifik kosong, coba ambil dari antrean lainnya
+        if (q.length < 2) {
+            q = (c === 'xd') ? queuePA : queueXD;
+        }
+
+        if(q.length >= 2) { 
+            currentMatch[c] = [q.shift(), q.shift()]; 
+        }
     }
+
 
     function updateLB() {
         const s = Object.values(players).sort((a,b) => b.points - a.points || b.wins - a.wins);
