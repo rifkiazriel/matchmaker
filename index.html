@@ -200,7 +200,7 @@
         c.innerHTML = Object.keys(players).map(k => `<div>${k} (${players[k].gender})</div>`).join('');
     }
 
-    function startApp() {
+        function startApp() {
         const raw = document.getElementById('rawNames').value;
         if(raw.trim()) {
             raw.split(/[,\n]/).forEach(n => {
@@ -210,15 +210,20 @@
                 if(!players[clean]) players[clean] = { name: clean, gender: isF?'Wanita':'Pria', played:0, wins:0, losses:0, points:0 };
             });
         }
-        if(Object.keys(players).length < 4) return alert("Min 4 pemain");
+        
+        const pCount = Object.keys(players).length;
+        if(pCount < 4) return alert("Minimal harus ada 4 pemain untuk memulai!");
         
         buildQueues();
+        // Paksa refresh kedua court
         refreshMatch('xd');
         refreshMatch('pa');
+        
         saveToFirebase();
     }
 
-            function buildQueues() {
+
+    function buildQueues() {
         queueXD = []; 
         queuePA = [];
 
@@ -297,7 +302,7 @@
         saveToFirebase();
     }
 
-            function refreshMatch(c) {
+    function refreshMatch(c) {
         // Tentukan antrean utama berdasarkan tipe court
         let qPrimary = (c === 'xd') ? queueXD : queuePA;
         let qSecondary = (c === 'xd') ? queuePA : queueXD;
@@ -311,6 +316,7 @@
             // Jika benar-benar tidak ada orang di kedua antrean
             console.log("Antrean kosong, tidak bisa refresh match.");
         }
+        saveToFirebase();
     }
 
 
@@ -326,14 +332,16 @@
     }
 
     function shuffleMatch(c) {
-        let q = c === 'xd' ? queueXD : queuePA;
-        q.push(...currentMatch[c]);
+        let q = (c === 'xd') ? queueXD : queuePA;
+        if(currentMatch[c][0][0] !== '?') {
+            q.push(currentMatch[c][0], currentMatch[c][1]);
+        }
         q.sort(() => Math.random() - 0.5);
-        currentMatch[c] = [q.shift(), q.shift()];
+        refreshMatch(c);
         saveToFirebase();
     }
 
-function toggleEdit(c) {
+    function toggleEdit(c) {
         const p = document.getElementById(`edit-${c}`);
         p.style.display = p.style.display === 'block' ? 'none' : 'block';
         if(p.style.display === 'block') {
