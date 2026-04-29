@@ -218,28 +218,24 @@
         saveToFirebase();
     }
 
-        function buildQueues() {
-        queueXD = []; // Reset antrean
+            function buildQueues() {
+        queueXD = []; 
         queuePA = [];
 
         let all = Object.values(players);
         let f = all.filter(p => p.gender === 'Wanita').sort(() => Math.random() - 0.5);
         let m = all.filter(p => p.gender === 'Pria').sort(() => Math.random() - 0.5);
         
-        // JIKA WANITA KURANG DARI 2: 
-        // Semua pemain dicampur jadi satu antrean random (Court 1 & 2 jadi General Double)
         if (f.length < 2) {
+            // Jika cewek < 2, gabung semua ke antrean Ganda Umum (PA)
             let combined = [...f, ...m].sort(() => Math.random() - 0.5);
             for(let i = 0; i < combined.length; i += 2) {
                 if(combined[i+1]) {
-                    // Masukkan ke queuePA saja sebagai antrean umum
                     queuePA.push([combined[i].name, combined[i+1].name]);
                 }
             }
-            // Kosongkan queueXD agar sistem mengambil dari queuePA untuk kedua court jika diperlukan
-            // Atau Anda bisa mengarahkan refreshMatch untuk mengambil dari PA
         } else {
-            // LOGIKA NORMAL (Mix Double tetap ada)
+            // Logika Normal
             let mForXD = m.splice(0, f.length);
             f.forEach((wanita, i) => {
                 if (mForXD[i]) {
@@ -247,7 +243,6 @@
                 }
             });
 
-            // Sisa pria masuk ke ganda putra
             for(let i = 0; i < m.length; i += 2) { 
                 if(m[i+1]) {
                     queuePA.push([m[i].name, m[i+1].name]); 
@@ -283,7 +278,17 @@
         });
 
         matchHistory.unshift({ type: c.toUpperCase(), t1: `${t[0][0]}&${t[0][1]}`, t2: `${t[1][0]}&${t[1][1]}`, s1, s2 });
+            // Cek jumlah wanita untuk menentukan pemain dikembalikan ke antrean mana
+    const totalWanita = Object.values(players).filter(p => p.gender === 'Wanita').length;
+    
+    if (totalWanita < 2) {
+        // Jika wanita kurang dari 2, semua orang kembali ke antrean yang sama (PA)
+        queuePA.push(t[0], t[1]);
+    } else {
+        // Jika normal, kembali ke antrean sesuai jenis court
         (c === 'xd' ? queueXD : queuePA).push(t[0], t[1]);
+    }
+
         
         document.getElementById(`sc-${c}-1`).value = '';
         document.getElementById(`sc-${c}-2`).value = '';
@@ -292,18 +297,22 @@
         saveToFirebase();
     }
 
-        function refreshMatch(c) {
-        let q = c === 'xd' ? queueXD : queuePA;
-        
-        // Jika antrean spesifik kosong, coba ambil dari antrean lainnya
-        if (q.length < 2) {
-            q = (c === 'xd') ? queuePA : queueXD;
-        }
+            function refreshMatch(c) {
+        // Tentukan antrean utama berdasarkan tipe court
+        let qPrimary = (c === 'xd') ? queueXD : queuePA;
+        let qSecondary = (c === 'xd') ? queuePA : queueXD;
 
-        if(q.length >= 2) { 
-            currentMatch[c] = [q.shift(), q.shift()]; 
+        // Cek antrean utama dulu, kalau tidak ada, ambil dari antrean cadangan
+        if (qPrimary.length >= 2) {
+            currentMatch[c] = [qPrimary.shift(), qPrimary.shift()];
+        } else if (qSecondary.length >= 2) {
+            currentMatch[c] = [qSecondary.shift(), qSecondary.shift()];
+        } else {
+            // Jika benar-benar tidak ada orang di kedua antrean
+            console.log("Antrean kosong, tidak bisa refresh match.");
         }
     }
+
 
 
     function updateLB() {
